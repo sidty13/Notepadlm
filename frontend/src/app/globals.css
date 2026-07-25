@@ -1,0 +1,147 @@
+@import "tailwindcss";
+
+@theme {
+  /* -- Palette: reading-room / card-catalog -- */
+  --color-paper: #e5e2d6;
+  --color-paper-dim: #dbd7c7;
+  --color-surface: #faf9f3;
+  --color-surface-raised: #ffffff;
+  --color-ink: #1e2319;
+  --color-ink-soft: #4c5344;
+  --color-ink-faint: #8a8f7c;
+  --color-line: #c7c2ac;
+  --color-line-soft: #d8d4c2;
+
+  --color-moss: #2f5d50;
+  --color-moss-dark: #1f3f36;
+  --color-moss-light: #e2ebe6;
+
+  --color-rust: #bd4419;
+  --color-rust-dark: #8f3212;
+  --color-rust-light: #f3ded3;
+
+  --color-gold: #a9863a;
+  --color-gold-light: #f0e6cc;
+
+  --font-display: "Fraunces", "Iowan Old Style", "Georgia", serif;
+  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
+
+  --shadow-card: 0 1px 2px rgba(30, 35, 25, 0.06), 0 4px 14px rgba(30, 35, 25, 0.06);
+  --shadow-drawer: -8px 0 28px rgba(30, 35, 25, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(30, 35, 25, 0.05) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+#__next,
+main {
+  height: 100%;
+}
+
+::selection {
+  background: var(--color-rust-light);
+  color: var(--color-rust-dark);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-faint);
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-moss);
+  outline-offset: 2px;
+}
+
+@keyframes stamp-in {
+  0% {
+    transform: scale(1.6) rotate(-14deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(0.94) rotate(-6deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(-6deg);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.citation-stamp {
+  animation: stamp-in 0.35s cubic-bezier(0.2, 0.8, 0.3, 1.1) both;
+}
+
+.fade-up {
+  animation: fade-up 0.28s ease-out both;
+}
+
+.pulse-soft {
+  animation: pulse-soft 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .citation-stamp,
+  .fade-up,
+  .pulse-soft {
+    animation: none !important;
+  }
+}

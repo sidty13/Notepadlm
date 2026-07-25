@@ -6,13 +6,13 @@ citations you can click to jump back to the exact page/timestamp/section.
 
 ## Status
 
-**Backend: functionally complete for Day 1 + Day 2 of the build plan.**
-Frontend: not yet built — see "What's left" below.
+**Backend and frontend both functionally complete.** See "What's left" below
+for polish items and deployment.
 
 ## Architecture
 
 ```
-Next.js (frontend, not yet built) ──HTTP/SSE──> FastAPI (backend)
+Next.js (frontend) ──HTTP/SSE──> FastAPI (backend)
                                                      │
                         ┌────────────────────────────┼───────────────────────┐
                         │                             │                       │
@@ -75,23 +75,30 @@ Every chunk carries the metadata needed to jump back to its origin:
 - `backend/alembic` — initial migration: pgvector extension, all tables, ANN
   index, full-text GIN index
 - `docker-compose.yml` — Postgres+pgvector, Redis, backend, Celery worker,
-  frontend (frontend service will build once the Next.js app exists)
+  frontend (Next.js, multi-stage Docker build)
 
 All backend files have been syntax-checked and the FastAPI app has been
 imported end-to-end (24 routes wire up with no import errors).
 
+- `frontend/` — Next.js 16 (App Router, React 19, Tailwind v4, TypeScript):
+  - Notebook library (`/`) and a three-panel workspace (`/notebook/[id]`):
+    sources list, streaming chat, and a slide-in source viewer
+  - Source upload (file drag/drop, website URL, YouTube URL) with live
+    status polling while a source is extracting/chunking/embedding
+  - Streaming chat over SSE with inline citation markers; clicking one opens
+    the exact page (PDF), timestamp (YouTube/VTT), or section (website) in
+    the viewer drawer
+  - Roadmap and podcast bonus features as modals, calling the corresponding
+    backend endpoints
+  - Verified with `tsc --noEmit`, `next build`, and `eslint` (all clean)
+
 ## What's left
 
-1. **Frontend (Next.js)** — sidebar/notebook management, source upload modal
-   with live status indicators, streaming chat UI with clickable citations,
-   source viewer panel (PDF page view, website preview, YouTube embed,
-   text/transcript highlight), suggested-questions empty state, roadmap and
-   podcast UI for the bonus features.
-2. **Deployment** — pick a host (Render/Railway/Fly for backend+worker+Postgres,
-   Vercel for frontend), wire env vars, verify pgvector is available on the
-   chosen Postgres provider.
-3. **Demo video** once the frontend exists.
-4. Nice-to-haves if time allows: websocket instead of polling for source
+1. **Deployment** — pick a host (Render/Railway/Fly for backend+worker+Postgres,
+   Vercel or the included Dockerfile for the frontend), wire env vars, verify
+   pgvector is available on the chosen Postgres provider.
+2. **Demo video.**
+3. Nice-to-haves if time allows: websocket instead of polling for source
    status, ffmpeg-based podcast concatenation instead of naive MP3 byte
    concatenation, dedicated cross-encoder reranker instead of LLM rerank.
 
@@ -104,9 +111,18 @@ cp backend/.env.example backend/.env
 docker compose up --build
 ```
 Backend will be at `http://localhost:8000` (docs at `/docs`), and will run
-its own Alembic migration on startup.
+its own Alembic migration on startup. Frontend will be at
+`http://localhost:3000`.
 
-### Option B — Manual (backend only, for now)
+Note: `NEXT_PUBLIC_API_URL` is inlined into the frontend's JS bundle at
+**build** time (Next.js behavior for `NEXT_PUBLIC_*` vars), not read at
+container start. If you need the frontend to reach the backend at a
+different URL, edit the `args:` under the `frontend` service in
+`docker-compose.yml` and rebuild with `docker compose up --build frontend`.
+
+### Option B — Manual
+
+**Backend:**
 ```bash
 cd backend
 python -m venv .venv && source .venv/bin/activate
@@ -118,6 +134,15 @@ cp .env.example .env
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
+
+**Frontend:**
+```bash
+cd frontend
+cp .env.example .env.local
+npm install
+npm run dev
+```
+Open `http://localhost:3000`.
 
 ## Environment variables
 
@@ -147,6 +172,11 @@ backend/
   alembic/            migrations
   requirements.txt
   Dockerfile
-frontend/             (to be built)
+frontend/
+  src/
+    app/              routes: library (`/`) and workspace (`/notebook/[id]`)
+    components/       SourcesPanel, ChatPanel, SourceViewerDrawer, modals, etc.
+    lib/               api client, shared types, formatting helpers
+  Dockerfile
 docker-compose.yml
 ```

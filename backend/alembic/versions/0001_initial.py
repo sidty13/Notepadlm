@@ -16,11 +16,14 @@ depends_on = None
 
 EMBEDDING_DIM = 1536
 
-source_type_enum = pg.ENUM("pdf", "text", "website", "youtube", "vtt", name="sourcetype")
-source_status_enum = pg.ENUM(
-    "uploading", "extracting", "chunking", "embedding", "ready", "failed", name="sourcestatus"
+source_type_enum = pg.ENUM(
+    "pdf", "text", "website", "youtube", "vtt", name="sourcetype", create_type=False
 )
-role_enum = pg.ENUM("user", "assistant", name="role")
+source_status_enum = pg.ENUM(
+    "uploading", "extracting", "chunking", "embedding", "ready", "failed",
+    name="sourcestatus", create_type=False,
+)
+role_enum = pg.ENUM("user", "assistant", name="role", create_type=False)
 
 
 def upgrade() -> None:
