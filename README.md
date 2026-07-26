@@ -1,4 +1,4 @@
-# Notebook RAG — AI Research Assistant (Gemini NotebookLM-style)
+# Marginal — AI Research Assistant
 
 Multi-source, multi-notebook RAG app: upload PDFs/text/websites/YouTube/VTT into
 isolated notebooks, ask grounded questions, get streamed answers with inline
@@ -6,8 +6,8 @@ citations you can click to jump back to the exact page/timestamp/section.
 
 ## Status
 
-**Backend and frontend both functionally complete.** See "What's left" below
-for polish items and deployment.
+**Backend, frontend, and deployment are all complete and live on Railway.**
+See "What's left" below for remaining polish items.
 
 ## Architecture
 
@@ -75,11 +75,7 @@ Every chunk carries the metadata needed to jump back to its origin:
 - `backend/alembic` — initial migration: pgvector extension, all tables, ANN
   index, full-text GIN index
 - `docker-compose.yml` — Postgres+pgvector, Redis, backend, Celery worker,
-  frontend (Next.js, multi-stage Docker build)
-
-All backend files have been syntax-checked and the FastAPI app has been
-imported end-to-end (24 routes wire up with no import errors).
-
+  frontend (Next.js, multi-stage Docker build) — used for local development
 - `frontend/` — Next.js 16 (App Router, React 19, Tailwind v4, TypeScript):
   - Notebook library (`/`) and a three-panel workspace (`/notebook/[id]`):
     sources list, streaming chat, and a slide-in source viewer
@@ -91,16 +87,62 @@ imported end-to-end (24 routes wire up with no import errors).
   - Roadmap and podcast bonus features as modals, calling the corresponding
     backend endpoints
   - Verified with `tsc --noEmit`, `next build`, and `eslint` (all clean)
+- **Production deployment on Railway** — five services (Postgres+pgvector,
+  Redis, backend, Celery worker, frontend), wired via Railway's private
+  networking and public domains. See "Deployment" below.
+
+## Deployment
+
+The app runs in production on **Railway**, as five separate services in one
+project:
+
+| Service    | Source                              | Notes |
+|------------|--------------------------------------|-------|
+| `pgvector` | `ankane/pgvector:v0.5.1` image      | Volume mounted at `/var/lib/postgresql/data` |
+| `redis`    | Railway's official Redis template   | — |
+| `backend`  | `backend/Dockerfile`, root dir `backend` | Public domain, runs `alembic upgrade head` on startup |
+| `worker`   | Same image as backend, different start command | Unexposed (no public domain) |
+| `frontend` | `frontend/Dockerfile`, root dir `frontend` | Public domain, `NEXT_PUBLIC_*` vars baked in at build time |
+
+### Key config that made this work
+
+- **Dockerfile Path vs Root Directory**: when Root Directory is set to
+  `backend`, Dockerfile Path must be just `/Dockerfile` (relative to that
+  root) — not `/backend/Dockerfile`, which double-nests and fails.
+- **Dynamic port binding**: both the backend and frontend must listen on
+  Railway's assigned `$PORT`, not a hardcoded port, or Railway's proxy
+  returns 502 Bad Gateway:
+  - Backend start command: `sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"`
+  - Frontend: `next start -p ${PORT:-3000}`
+  - The **Networking → target port** setting for each public-facing service
+    must match whatever port the app actually binds to.
+- **Celery concurrency**: without an explicit `--concurrency` flag, Celery
+  auto-detects the *host's* CPU count (not the container's allocation),
+  which on Railway can spawn far more worker processes than available
+  memory allows, causing an OOM crash-restart loop. Start command is
+  pinned to `--concurrency=2`:
+  ```
+  celery -A app.workers.celery_app worker --loglevel=info -Q indexing --concurrency=2
+  ```
+- **Service-to-service networking**: backend and worker reach Postgres and
+  Redis via Railway's private domains (`${{Postgres.RAILWAY_PRIVATE_DOMAIN}}`,
+  `${{Redis.RAILWAY_PRIVATE_DOMAIN}}`), referenced as Railway variables
+  rather than hardcoded hosts.
+- **`NEXT_PUBLIC_API_URL` is a build-time value** — it must point at the
+  backend's real public Railway domain (e.g.
+  `https://<backend>.up.railway.app/api`) *before* the frontend is built.
+  Changing this variable requires a redeploy to take effect, since it's
+  inlined into the JS bundle at build time, not read at runtime.
+- **CORS**: the backend's allowed origins list includes the frontend's
+  production Railway domain.
 
 ## What's left
 
-1. **Deployment** — pick a host (Render/Railway/Fly for backend+worker+Postgres,
-   Vercel or the included Dockerfile for the frontend), wire env vars, verify
-   pgvector is available on the chosen Postgres provider.
-2. **Demo video.**
-3. Nice-to-haves if time allows: websocket instead of polling for source
+1. **Demo video.**
+2. Nice-to-haves if time allows: websocket instead of polling for source
    status, ffmpeg-based podcast concatenation instead of naive MP3 byte
-   concatenation, dedicated cross-encoder reranker instead of LLM rerank.
+   concatenation, dedicated cross-encoder reranker instead of LLM rerank,
+   running the Celery worker as a non-root user in the Dockerfile.
 
 ## Running locally
 
