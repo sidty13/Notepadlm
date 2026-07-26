@@ -8,7 +8,7 @@ import re
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response, StreamingResponse
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -18,6 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.api.deps import get_owned_notebook
 from app.core.db import get_db
 from app.models.models import Chunk, Citation, Message, Notebook, Source
 
@@ -40,13 +41,9 @@ def _describe_location(chunk: Chunk) -> str:
     return "excerpt"
 
 
-async def _load_export_data(db: AsyncSession, notebook_id: uuid.UUID):
-    notebook = await db.get(Notebook, notebook_id)
-    if not notebook:
-        raise HTTPException(404, "Notebook not found")
-
+async def _load_export_data(db: AsyncSession, notebook: Notebook):
     sources = (
-        (await db.execute(select(Source).where(Source.notebook_id == notebook_id).order_by(Source.created_at)))
+        (await db.execute(select(Source).where(Source.notebook_id == notebook.id).order_by(Source.created_at)))
         .scalars()
         .all()
     )
@@ -54,7 +51,7 @@ async def _load_export_data(db: AsyncSession, notebook_id: uuid.UUID):
     messages = (
         await db.execute(
             select(Message)
-            .where(Message.notebook_id == notebook_id)
+            .where(Message.notebook_id == notebook.id)
             .options(selectinload(Message.citations).selectinload(Citation.chunk).selectinload(Chunk.source))
             .order_by(Message.created_at)
         )
@@ -68,8 +65,9 @@ async def export_notebook(
     notebook_id: uuid.UUID,
     format: str = Query("markdown", pattern="^(json|markdown|pdf)$"),
     db: AsyncSession = Depends(get_db),
+    notebook: Notebook = Depends(get_owned_notebook),
 ):
-    notebook, sources, messages = await _load_export_data(db, notebook_id)
+    notebook, sources, messages = await _load_export_data(db, notebook)
     slug = _slugify(notebook.name)
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 

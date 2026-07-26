@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, BookMarked } from "lucide-react";
@@ -14,6 +15,7 @@ import QuizModal from "@/components/QuizModal";
 import NotesModal from "@/components/NotesModal";
 import ExportMenu from "@/components/ExportMenu";
 import SettingsPanel from "@/components/SettingsPanel";
+import UserMenu from "@/components/UserMenu";
 
 export default function NotebookWorkspacePage() {
   const params = useParams<{ id: string }>();
@@ -28,12 +30,29 @@ export default function NotebookWorkspacePage() {
   const [showQuiz, setShowQuiz] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const { isLoaded, isSignedIn } = useAuth();
 
-  useEffect(() => {
-    getNotebook(notebookId)
-      .then(setNotebook)
-      .catch(() => setNotFound(true));
-  }, [notebookId]);
+useEffect(() => {
+  if (!isLoaded || !isSignedIn) return;
+
+  getNotebook(notebookId)
+    .then(setNotebook)
+    .catch(() => setNotFound(true));
+}, [notebookId, isLoaded, isSignedIn]);
+useEffect(() => {
+  if (!isLoaded || !isSignedIn) return;
+
+  const check = () =>
+    listSources(notebookId)
+      .then((rows) => setHasReadySource(rows.some((s) => s.status === "ready")))
+      .catch(() => {});
+
+  check();
+
+  const interval = setInterval(check, 3000);
+
+  return () => clearInterval(interval);
+}, [notebookId, isLoaded, isSignedIn]);
 
   useEffect(() => {
     const check = () =>
@@ -78,6 +97,7 @@ export default function NotebookWorkspacePage() {
         <div className="ml-auto flex items-center gap-2">
           <SettingsPanel />
           <ExportMenu notebookId={notebookId} />
+          <UserMenu />
         </div>
       </header>
 

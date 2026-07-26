@@ -6,6 +6,7 @@ import { sourceFileUrl, viewChunk } from "@/lib/api";
 import type { CitationOut, SourceOut, ViewerPayload } from "@/lib/types";
 import { formatTimestamp } from "@/lib/format";
 import SourceIcon from "./SourceIcon";
+import PdfViewer from "./PdfViewer";
 
 export type ViewerTarget =
   | { kind: "citation"; citation: CitationOut }
@@ -126,16 +127,16 @@ export default function SourceViewerDrawer({
 }
 
 function ViewerBody({ payload }: { notebookId: string; payload: ViewerPayload }) {
-  if (payload.mode === "pdf") {
-    return (
-      <iframe
-        title={payload.title}
-        src={`${payload.file_url}#page=${payload.page ?? 1}`}
-        className="h-full w-full"
-        style={{ minHeight: "70vh", border: "none" }}
-      />
-    );
-  }
+ if (payload.mode === "pdf" && payload.file_url) {
+  return (
+    <PdfViewer
+      key={`${payload.source_id}:${payload.page ?? ""}:${payload.chunk_text?.slice(0, 24) ?? ""}`}
+      fileUrl={payload.file_url}
+      initialPage={payload.page}
+      highlightText={payload.chunk_text || undefined}
+    />
+  );
+}
 
   if (payload.mode === "youtube") {
     const id = payload.url ? youtubeId(payload.url) : null;

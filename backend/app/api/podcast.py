@@ -14,10 +14,11 @@ from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_owned_notebook
 from app.core.config import settings
 from app.core.db import get_db
 from app.generation.llm import get_client
-from app.models.models import Chunk, Source, SourceStatus
+from app.models.models import Chunk, Notebook, Source, SourceStatus
 from app.schemas.schemas import PodcastRequest
 
 router = APIRouter(prefix="/notebooks/{notebook_id}/podcast", tags=["podcast"])
@@ -35,7 +36,12 @@ Material:
 
 
 @router.post("")
-async def generate_podcast(notebook_id: uuid.UUID, payload: PodcastRequest, db: AsyncSession = Depends(get_db)):
+async def generate_podcast(
+    notebook_id: uuid.UUID,
+    payload: PodcastRequest,
+    db: AsyncSession = Depends(get_db),
+    notebook: Notebook = Depends(get_owned_notebook),
+):
     if not settings.OPENAI_API_KEY:
         raise HTTPException(400, "OPENAI_API_KEY is not set; TTS is unavailable.")
 
@@ -108,6 +114,9 @@ def _concatenate_mp3s(paths: list[str], out_path: str) -> None:
 
 @router.get("/file")
 async def get_podcast_file(notebook_id: uuid.UUID, path: str):
+    """Serves the generated MP3 for the <audio> element, which — like the
+    PDF file endpoint — can't send an Authorization header. Protected by
+    its unguessable path instead."""
     out_dir = os.path.abspath(
         os.path.join(settings.UPLOAD_DIR, str(notebook_id), "podcast")
     )

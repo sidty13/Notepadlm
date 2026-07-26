@@ -49,6 +49,13 @@ class Settings(BaseSettings):
     OPENAI_TTS_VOICE_HOST_A: str = "alloy"
     OPENAI_TTS_VOICE_HOST_B: str = "echo"
 
+    # --- Auth (Clerk) ---
+    # The Frontend API URL for your Clerk app, e.g. "https://your-app.clerk.accounts.dev"
+    # (Clerk Dashboard -> Configure -> API Keys -> "Frontend API URL"), or your
+    # production Clerk domain once you've set one up. Used to fetch Clerk's JWKS
+    # and verify session tokens; leave unset and every request will be rejected.
+    CLERK_ISSUER: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:

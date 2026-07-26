@@ -2,12 +2,13 @@ import json
 import re
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.api.deps import get_owned_notebook
 from app.core.db import get_db
 from app.generation.llm import stream_answer
 from app.models.models import Chunk, Citation, Message, Notebook, Role
@@ -20,7 +21,11 @@ _CITATION_RE = re.compile(r"\[(\d+)]")
 
 
 @router.get("/messages", response_model=list[MessageOut])
-async def list_messages(notebook_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def list_messages(
+    notebook_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    notebook: Notebook = Depends(get_owned_notebook),
+):
     rows = (
         await db.execute(
             select(Message)
@@ -52,7 +57,12 @@ async def list_messages(notebook_id: uuid.UUID, db: AsyncSession = Depends(get_d
 
 
 @router.post("/chat")
-async def chat(notebook_id: uuid.UUID, payload: ChatRequest, db: AsyncSession = Depends(get_db)):
+async def chat(
+    notebook_id: uuid.UUID,
+    payload: ChatRequest,
+    db: AsyncSession = Depends(get_db),
+    notebook: Notebook = Depends(get_owned_notebook),
+):
     """
     Streams the answer as Server-Sent Events. Event types:
       - {"type": "context", "chunks": [...]}   sent first, so the UI can
@@ -60,10 +70,6 @@ async def chat(notebook_id: uuid.UUID, payload: ChatRequest, db: AsyncSession = 
       - {"type": "token", "text": "..."}       repeated for each token
       - {"type": "done", "message_id": "..."}  final event
     """
-    notebook = await db.get(Notebook, notebook_id)
-    if not notebook:
-        raise HTTPException(404, "Notebook not found")
-
     history_rows = (
         await db.execute(
             select(Message).where(Message.notebook_id == notebook_id).order_by(Message.created_at)

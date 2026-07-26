@@ -16,15 +16,19 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_owned_notebook
 from app.core.db import get_db
-from app.models.models import Chunk, Source, SourceType
+from app.models.models import Chunk, Notebook, Source, SourceType
 
 router = APIRouter(prefix="/notebooks/{notebook_id}/chunks", tags=["viewer"])
 
 
 @router.get("/{chunk_id}/view")
 async def view_chunk_source(
-    notebook_id: uuid.UUID, chunk_id: uuid.UUID, db: AsyncSession = Depends(get_db)
+    notebook_id: uuid.UUID,
+    chunk_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    notebook: Notebook = Depends(get_owned_notebook),
 ):
     chunk = await db.get(Chunk, chunk_id)
     if not chunk or chunk.notebook_id != notebook_id:

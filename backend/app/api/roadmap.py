@@ -15,10 +15,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_owned_notebook
 from app.core.config import settings
 from app.core.db import get_db
 from app.generation.llm import get_client
-from app.models.models import Chunk, Source, SourceStatus
+from app.models.models import Chunk, Notebook, Source, SourceStatus
 from app.schemas.schemas import RoadmapRequest
 
 router = APIRouter(prefix="/notebooks/{notebook_id}/roadmap", tags=["roadmap"])
@@ -46,7 +47,12 @@ Sources:
 
 
 @router.post("")
-async def generate_roadmap(notebook_id: uuid.UUID, payload: RoadmapRequest, db: AsyncSession = Depends(get_db)):
+async def generate_roadmap(
+    notebook_id: uuid.UUID,
+    payload: RoadmapRequest,
+    db: AsyncSession = Depends(get_db),
+    notebook: Notebook = Depends(get_owned_notebook),
+):
     stmt = select(Source).where(Source.notebook_id == notebook_id, Source.status == SourceStatus.ready)
     if payload.source_ids:
         stmt = stmt.where(Source.id.in_(payload.source_ids))

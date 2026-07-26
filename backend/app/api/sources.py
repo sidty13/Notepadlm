@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_owned_notebook
 from app.core.config import settings
 from app.core.db import get_db
 from app.models.models import Notebook, Source, SourceStatus, SourceType
@@ -20,13 +21,6 @@ router = APIRouter(prefix="/notebooks/{notebook_id}/sources", tags=["sources"])
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 
 _EXT_TO_TYPE = {".pdf": SourceType.pdf, ".txt": SourceType.text, ".md": SourceType.text, ".vtt": SourceType.vtt}
-
-
-async def _get_notebook_or_404(notebook_id: uuid.UUID, db: AsyncSession) -> Notebook:
-    nb = await db.get(Notebook, notebook_id)
-    if not nb:
-        raise HTTPException(404, "Notebook not found")
-    return nb
 
 
 def _schedule_indexing(background_tasks: BackgroundTasks, source_id: uuid.UUID):
@@ -53,8 +47,11 @@ async def _run_inline(source_id: uuid.UUID):
 
 
 @router.get("", response_model=list[SourceOut])
-async def list_sources(notebook_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    await _get_notebook_or_404(notebook_id, db)
+async def list_sources(
+    notebook_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    notebook: Notebook = Depends(get_owned_notebook),
+):
     rows = (
         await db.execute(
             select(Source).where(Source.notebook_id == notebook_id).order_by(Source.created_at.desc())
@@ -70,10 +67,9 @@ async def upload_file_source(
     file: UploadFile = File(...),
     title: str | None = Form(None),
     db: AsyncSession = Depends(get_db),
+    notebook: Notebook = Depends(get_owned_notebook),
 ):
     """Handles PDF, plain text, and VTT uploads."""
-    await _get_notebook_or_404(notebook_id, db)
-
     ext = os.path.splitext(file.filename or "")[1].lower()
     source_type = _EXT_TO_TYPE.get(ext)
     if source_type is None:
@@ -109,8 +105,8 @@ async def add_website_source(
     payload: WebsiteOrYoutubeSourceCreate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    notebook: Notebook = Depends(get_owned_notebook),
 ):
-    await _get_notebook_or_404(notebook_id, db)
     source = Source(
         notebook_id=notebook_id,
         type=SourceType.website,
@@ -132,8 +128,8 @@ async def add_youtube_source(
     payload: WebsiteOrYoutubeSourceCreate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    notebook: Notebook = Depends(get_owned_notebook),
 ):
-    await _get_notebook_or_404(notebook_id, db)
     source = Source(
         notebook_id=notebook_id,
         type=SourceType.youtube,
@@ -150,8 +146,18 @@ async def add_youtube_source(
 
 
 @router.get("/{source_id}/file")
-async def get_source_file(notebook_id: uuid.UUID, source_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    """Serves the raw uploaded file (currently PDFs) for the source viewer."""
+async def get_source_file(
+    notebook_id: uuid.UUID,
+    source_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Serves the raw uploaded file (currently PDFs) for the source viewer.
+
+    Deliberately not gated behind get_owned_notebook: this URL is loaded by
+    a plain <iframe src=...>, which can't attach an Authorization header.
+    It's protected by its unguessable notebook_id/source_id path instead,
+    same tradeoff as the podcast file endpoint below.
+    """
     source = await db.get(Source, source_id)
     if not source or source.notebook_id != notebook_id or not source.file_path:
         raise HTTPException(404, "File not found")
@@ -159,7 +165,12 @@ async def get_source_file(notebook_id: uuid.UUID, source_id: uuid.UUID, db: Asyn
 
 
 @router.get("/{source_id}", response_model=SourceOut)
-async def get_source(notebook_id: uuid.UUID, source_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def get_source(
+    notebook_id: uuid.UUID,
+    source_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    notebook: Notebook = Depends(get_owned_notebook),
+):
     source = await db.get(Source, source_id)
     if not source or source.notebook_id != notebook_id:
         raise HTTPException(404, "Source not found")
@@ -172,6 +183,7 @@ async def reindex_source(
     source_id: uuid.UUID,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    notebook: Notebook = Depends(get_owned_notebook),
 ):
     source = await db.get(Source, source_id)
     if not source or source.notebook_id != notebook_id:
@@ -184,7 +196,12 @@ async def reindex_source(
 
 
 @router.delete("/{source_id}", status_code=204)
-async def delete_source(notebook_id: uuid.UUID, source_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def delete_source(
+    notebook_id: uuid.UUID,
+    source_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    notebook: Notebook = Depends(get_owned_notebook),
+):
     source = await db.get(Source, source_id)
     if not source or source.notebook_id != notebook_id:
         raise HTTPException(404, "Source not found")

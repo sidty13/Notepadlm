@@ -8,6 +8,7 @@ import NotebookCard from "@/components/NotebookCard";
 import CreateNotebookModal from "@/components/CreateNotebookModal";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import SettingsPanel from "@/components/SettingsPanel";
+import UserMenu from "@/components/UserMenu";
 import { useToast } from "@/components/Toast";
 import { useRouter } from "next/navigation";
 
@@ -71,7 +72,10 @@ export default function HomePage() {
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-3">
-          <SettingsPanel />
+          <div className="flex items-center gap-2">
+            <SettingsPanel />
+            <UserMenu />
+          </div>
           <button
             onClick={() => setShowCreate(true)}
             className="press flex items-center gap-2 rounded-sm bg-moss px-4 py-2.5 text-sm font-medium text-surface shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:bg-moss-dark hover:shadow-[var(--shadow-card-hover)]"

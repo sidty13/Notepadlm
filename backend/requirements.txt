@@ -20,3 +20,4 @@ tiktoken==0.7.0
 python-dotenv==1.0.1
 tenacity==8.5.0
 reportlab==4.2.5
+PyJWT[crypto]==2.9.0

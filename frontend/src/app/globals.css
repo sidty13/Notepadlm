@@ -334,6 +334,34 @@ html[data-ink="pencil"] .ink-text {
   opacity: 0.92;
 }
 
+/* Highlight applied to the exact cited passage inside a rendered PDF page
+   (see PdfViewer.tsx / customTextRenderer). A brief glow draws the eye on
+   first render, then settles into a steady highlight. */
+.pdf-citation-mark {
+  background: rgba(211, 176, 106, 0.55);
+  color: inherit;
+  border-radius: 2px;
+  box-shadow: 0 0 0 2px rgba(211, 176, 106, 0.55);
+  animation: citation-glow 1.6s ease-out 1;
+}
+
+@keyframes citation-glow {
+  0% {
+    background: rgba(189, 68, 25, 0.55);
+    box-shadow: 0 0 0 4px rgba(189, 68, 25, 0.35);
+  }
+  100% {
+    background: rgba(211, 176, 106, 0.55);
+    box-shadow: 0 0 0 2px rgba(211, 176, 106, 0.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdf-citation-mark {
+    animation: none !important;
+  }
+}
+
 /* ---------------------------------------------------------------------- */
 /* Page-turn animation for newly-arriving chat entries / modal content     */
 /* ---------------------------------------------------------------------- */
