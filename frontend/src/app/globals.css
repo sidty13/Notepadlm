@@ -334,6 +334,78 @@ html[data-ink="pencil"] .ink-text {
   opacity: 0.92;
 }
 
+/* ---------------------------------------------------------------------- */
+/* Page-turn animation for newly-arriving chat entries / modal content     */
+/* ---------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
+/* Landing page motion: gentle float for pinned/washi decorations, a       */
+/* staggered rise-in for hero/feature content, and a hand-drawn underline  */
+/* that animates in under the hero title.                                 */
+/* ---------------------------------------------------------------------- */
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--float-r, 0deg));
+  }
+  50% {
+    transform: translateY(-12px) rotate(var(--float-r, 0deg));
+  }
+}
+.float-slow {
+  animation: float-slow 6.5s ease-in-out infinite;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise-in {
+  animation: rise-in 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation-delay: var(--rise-delay, 0s);
+}
+
+@keyframes draw-underline {
+  from {
+    stroke-dashoffset: var(--len, 300);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.draw-underline {
+  stroke-dasharray: var(--len, 300);
+  stroke-dashoffset: var(--len, 300);
+  animation: draw-underline 1.1s 0.5s cubic-bezier(0.3, 0.7, 0.2, 1) forwards;
+}
+
+@keyframes ink-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.ink-fade-in {
+  animation: ink-fade-in 1.4s ease-out both;
+  animation-delay: var(--rise-delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float-slow,
+  .rise-in,
+  .draw-underline,
+  .ink-fade-in {
+    animation: none !important;
+  }
+}
+
 /* Highlight applied to the exact cited passage inside a rendered PDF page
    (see PdfViewer.tsx / customTextRenderer). A brief glow draws the eye on
    first render, then settles into a steady highlight. */
@@ -362,9 +434,6 @@ html[data-ink="pencil"] .ink-text {
   }
 }
 
-/* ---------------------------------------------------------------------- */
-/* Page-turn animation for newly-arriving chat entries / modal content     */
-/* ---------------------------------------------------------------------- */
 @keyframes page-turn {
   0% {
     transform: perspective(800px) rotateY(-8deg) translateX(-6px);

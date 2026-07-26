@@ -1,6 +1,5 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, BookMarked } from "lucide-react";
@@ -30,29 +29,12 @@ export default function NotebookWorkspacePage() {
   const [showQuiz, setShowQuiz] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [notFound, setNotFound] = useState(false);
-  const { isLoaded, isSignedIn } = useAuth();
 
-useEffect(() => {
-  if (!isLoaded || !isSignedIn) return;
-
-  getNotebook(notebookId)
-    .then(setNotebook)
-    .catch(() => setNotFound(true));
-}, [notebookId, isLoaded, isSignedIn]);
-useEffect(() => {
-  if (!isLoaded || !isSignedIn) return;
-
-  const check = () =>
-    listSources(notebookId)
-      .then((rows) => setHasReadySource(rows.some((s) => s.status === "ready")))
-      .catch(() => {});
-
-  check();
-
-  const interval = setInterval(check, 3000);
-
-  return () => clearInterval(interval);
-}, [notebookId, isLoaded, isSignedIn]);
+  useEffect(() => {
+    getNotebook(notebookId)
+      .then(setNotebook)
+      .catch(() => setNotFound(true));
+  }, [notebookId]);
 
   useEffect(() => {
     const check = () =>
@@ -73,7 +55,7 @@ useEffect(() => {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-3 text-center">
         <p className="font-display text-2xl text-ink">Notebook not found</p>
-        <button onClick={() => router.push("/")} className="text-sm text-moss hover:underline">
+        <button onClick={() => router.push("/dashboard")} className="text-sm text-moss hover:underline">
           Back to your notebooks
         </button>
       </div>
@@ -84,7 +66,7 @@ useEffect(() => {
     <div className="flex h-screen flex-col">
       <header className="flex shrink-0 items-center gap-3 border-b border-line bg-surface px-4 py-3">
         <button
-          onClick={() => router.push("/")}
+          onClick={() => router.push("/dashboard")}
           className="press rounded-full p-1.5 text-ink-soft transition hover:bg-paper hover:text-ink"
           aria-label="Back to notebooks"
         >

@@ -127,16 +127,16 @@ export default function SourceViewerDrawer({
 }
 
 function ViewerBody({ payload }: { notebookId: string; payload: ViewerPayload }) {
- if (payload.mode === "pdf" && payload.file_url) {
-  return (
-    <PdfViewer
-      key={`${payload.source_id}:${payload.page ?? ""}:${payload.chunk_text?.slice(0, 24) ?? ""}`}
-      fileUrl={payload.file_url}
-      initialPage={payload.page}
-      highlightText={payload.chunk_text || undefined}
-    />
-  );
-}
+  if (payload.mode === "pdf" && payload.file_url) {
+    return (
+      <PdfViewer
+        key={`${payload.source_id}:${payload.page ?? ""}:${payload.chunk_text?.slice(0, 24) ?? ""}`}
+        fileUrl={payload.file_url}
+        initialPage={payload.page}
+        highlightText={payload.chunk_text || undefined}
+      />
+    );
+  }
 
   if (payload.mode === "youtube") {
     const id = payload.url ? youtubeId(payload.url) : null;

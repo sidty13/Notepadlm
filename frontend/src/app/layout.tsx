@@ -7,7 +7,6 @@ import { clerkAppearance } from "@/lib/clerkTheme";
 
 export const metadata: Metadata = {
   title: "Marginal",
-  icons:"/favicon.ico",
   description:
     "Ask questions across your PDFs, transcripts, and lecture subtitles, and get answers with exact page and timestamp citations.",
 };
