@@ -34,7 +34,7 @@ ENV NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-
-EXPOSE 3000
+EXPOSE 8080
 ENV HOSTNAME="0.0.0.0"
-CMD ["npx", "next", "start", "-H", "0.0.0.0", "-p", "8080"]
+ENV PORT=8080
+CMD ["node", "server.js"]
