@@ -31,10 +31,10 @@ ENV NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/
 ENV NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/
 # CLERK_SECRET_KEY is supplied at container run time (docker-compose.yml's
 # `environment:`), never baked into an image layer.
-COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/static ./.next/static
+COPY start.js ./
 EXPOSE 8080
-ENV HOSTNAME="0.0.0.0"
 ENV PORT=8080
-CMD ["sh", "-c", "HOSTNAME=0.0.0.0 node server.js"]
+CMD ["node", "start.js"]
