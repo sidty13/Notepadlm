@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Plus, Map, Mic, Library } from "lucide-react";
+import { Plus, Map, Mic, Library, GraduationCap } from "lucide-react";
 import { deleteSource, listSources, reindexSource } from "@/lib/api";
 import type { SourceOut } from "@/lib/types";
 import SourceRow from "./SourceRow";
@@ -14,11 +14,13 @@ export default function SourcesPanel({
   onOpenSource,
   onOpenRoadmap,
   onOpenPodcast,
+  onOpenQuiz,
 }: {
   notebookId: string;
   onOpenSource: (source: SourceOut) => void;
   onOpenRoadmap: () => void;
   onOpenPodcast: () => void;
+  onOpenQuiz: () => void;
 }) {
   const [sources, setSources] = useState<SourceOut[] | null>(null);
   const [showUpload, setShowUpload] = useState(false);
@@ -128,6 +130,13 @@ export default function SourcesPanel({
             className="flex items-center gap-2 rounded-sm px-2.5 py-2 text-left text-sm text-ink-soft transition hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
           >
             <Mic size={15} /> Podcast summary
+          </button>
+          <button
+            disabled={readyCount === 0}
+            onClick={onOpenQuiz}
+            className="flex items-center gap-2 rounded-sm px-2.5 py-2 text-left text-sm text-ink-soft transition hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          >
+            <GraduationCap size={15} /> Quiz & flashcards
           </button>
         </div>
       </div>

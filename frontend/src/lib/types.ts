@@ -113,3 +113,24 @@ export interface PodcastResponse {
   audio_url: string;
   script: PodcastLine[];
 }
+
+// ---- Quiz / flashcards ----
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  correct_index: number;
+  explanation: string;
+}
+
+export interface Flashcard {
+  front: string;
+  back: string;
+}
+
+export interface QuizResponse {
+  questions: QuizQuestion[];
+  flashcards: Flashcard[];
+}
+
+// ---- Export ----
+export type ExportFormat = "markdown" | "json" | "pdf";

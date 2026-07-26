@@ -40,6 +40,7 @@ async def run_indexing_pipeline(source_id) -> None:
 
         try:
             await _set_status(db, source, SourceStatus.extracting)
+            logger.info("Source %s: extracting (%s)", source_id, source.type)
             extractor = get_extractor(source.type)
             units = await extractor.extract(source)
             if not units:
@@ -47,12 +48,14 @@ async def run_indexing_pipeline(source_id) -> None:
                 return
 
             await _set_status(db, source, SourceStatus.chunking)
+            logger.info("Source %s: extracted %d unit(s), chunking", source_id, len(units))
             prepared = chunk_units(units)
             if not prepared:
                 await _set_status(db, source, SourceStatus.failed, "Chunking produced no content.")
                 return
 
             await _set_status(db, source, SourceStatus.embedding)
+            logger.info("Source %s: chunked into %d piece(s), embedding", source_id, len(prepared))
             embeddings = await embed_texts([c.text for c in prepared])
 
             # Replace any previous chunks (covers re-index).
@@ -73,6 +76,7 @@ async def run_indexing_pipeline(source_id) -> None:
                 )
             source.meta = {**source.meta, "chunk_count": len(prepared)}
             await _set_status(db, source, SourceStatus.ready)
+            logger.info("Source %s: ready (%d chunks)", source_id, len(prepared))
 
         except Exception as e:  # noqa: BLE001
             logger.exception("Indexing failed for source %s", source_id)

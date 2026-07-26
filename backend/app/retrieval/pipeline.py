@@ -14,7 +14,7 @@ statement below.
 """
 from dataclasses import dataclass
 
-from sqlalchemy import select, text
+from sqlalchemy import distinct, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -22,6 +22,15 @@ from app.embeddings.embedder import embed_query
 from app.generation.llm import rewrite_query as llm_rewrite_query
 from app.generation.llm import rerank_chunks as llm_rerank_chunks
 from app.models.models import Chunk, Source
+
+# Minimum number of a source's own chunks that are always considered as
+# candidates for the reranker, regardless of how the global top-K vector
+# search ranks them. Without this, a large/text-dense source (e.g. a research
+# paper with dozens of chunks) can mathematically crowd a smaller source
+# (e.g. a short video transcript) out of the global top-K entirely, so the
+# reranker -- and therefore every answer -- never even gets a chance to
+# consider it, no matter how relevant it actually is.
+_MIN_CANDIDATES_PER_SOURCE = 3
 
 
 @dataclass
@@ -52,6 +61,38 @@ async def _vector_search(db: AsyncSession, notebook_id, query_embedding, k: int)
     )
     rows = (await db.execute(stmt)).all()
     return [(row[0], 1 - row[1]) for row in rows]  # convert distance -> similarity
+
+
+async def _notebook_source_ids(db: AsyncSession, notebook_id) -> list:
+    rows = (
+        await db.execute(
+            select(distinct(Chunk.source_id)).where(Chunk.notebook_id == notebook_id)
+        )
+    ).scalars().all()
+    return rows
+
+
+async def _vector_search_per_source_floor(
+    db: AsyncSession, notebook_id, query_embedding, source_ids, n: int
+) -> list[tuple]:
+    """For each source, pull its own top-n chunks by vector similarity --
+    independent of how they'd rank in a single global top-K -- so a source
+    with few chunks isn't mathematically drowned out by one with many."""
+    hits: list[tuple] = []
+    for source_id in source_ids:
+        stmt = (
+            select(Chunk, Chunk.embedding.cosine_distance(query_embedding).label("dist"))
+            .where(
+                Chunk.notebook_id == notebook_id,
+                Chunk.source_id == source_id,
+                Chunk.embedding.is_not(None),
+            )
+            .order_by("dist")
+            .limit(n)
+        )
+        rows = (await db.execute(stmt)).all()
+        hits.extend((row[0], 1 - row[1]) for row in rows)
+    return hits
 
 
 async def _bm25_search(db: AsyncSession, notebook_id, query: str, k: int) -> list[tuple]:
@@ -93,6 +134,17 @@ async def retrieve(
     query_embedding = await embed_query(standalone_query)
     vector_hits = await _vector_search(db, notebook_id, query_embedding, settings.TOP_K_VECTOR)
     bm25_hits = await _bm25_search(db, notebook_id, standalone_query, settings.TOP_K_BM25)
+
+    source_ids = await _notebook_source_ids(db, notebook_id)
+    if len(source_ids) > 1:
+        floor_hits = await _vector_search_per_source_floor(
+            db, notebook_id, query_embedding, source_ids, _MIN_CANDIDATES_PER_SOURCE
+        )
+        best_by_id: dict = {}
+        for chunk, score in vector_hits + floor_hits:
+            if chunk.id not in best_by_id or score > best_by_id[chunk.id][1]:
+                best_by_id[chunk.id] = (chunk, score)
+        vector_hits = sorted(best_by_id.values(), key=lambda cs: cs[1], reverse=True)
 
     fused = _reciprocal_rank_fusion(vector_hits, bm25_hits)
     candidates = sorted(fused.values(), key=lambda x: x["score"], reverse=True)

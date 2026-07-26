@@ -6,10 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.db import get_db
 from app.generation.llm import stream_answer
-from app.models.models import Citation, Message, Notebook, Role
+from app.models.models import Chunk, Citation, Message, Notebook, Role
 from app.retrieval.pipeline import retrieve
 from app.schemas.schemas import ChatRequest, ChunkOut, MessageOut, SourceOut
 
@@ -22,7 +23,10 @@ _CITATION_RE = re.compile(r"\[(\d+)]")
 async def list_messages(notebook_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     rows = (
         await db.execute(
-            select(Message).where(Message.notebook_id == notebook_id).order_by(Message.created_at)
+            select(Message)
+            .where(Message.notebook_id == notebook_id)
+            .options(selectinload(Message.citations).selectinload(Citation.chunk).selectinload(Chunk.source))
+            .order_by(Message.created_at)
         )
     ).scalars().all()
     out = []
@@ -35,7 +39,15 @@ async def list_messages(notebook_id: uuid.UUID, db: AsyncSession = Depends(get_d
             }
             for c in sorted(m.citations, key=lambda c: c.marker_index)
         ]
-        out.append(MessageOut(**MessageOut.model_validate(m).model_dump(exclude={"citations"}), citations=citations))
+        out.append(
+            MessageOut(
+                id=m.id,
+                role=m.role,
+                content=m.content,
+                created_at=m.created_at,
+                citations=citations,
+            )
+        )
     return out
 
 

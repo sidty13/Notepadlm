@@ -10,6 +10,8 @@ import ChatPanel from "@/components/ChatPanel";
 import SourceViewerDrawer, { ViewerTarget } from "@/components/SourceViewerDrawer";
 import RoadmapModal from "@/components/RoadmapModal";
 import PodcastModal from "@/components/PodcastModal";
+import QuizModal from "@/components/QuizModal";
+import ExportMenu from "@/components/ExportMenu";
 
 export default function NotebookWorkspacePage() {
   const params = useParams<{ id: string }>();
@@ -21,6 +23,7 @@ export default function NotebookWorkspacePage() {
   const [viewerTarget, setViewerTarget] = useState<ViewerTarget | null>(null);
   const [showRoadmap, setShowRoadmap] = useState(false);
   const [showPodcast, setShowPodcast] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
@@ -69,6 +72,9 @@ export default function NotebookWorkspacePage() {
         <h1 className="truncate font-display text-lg text-ink">
           {notebook?.name ?? <span className="inline-block h-4 w-40 animate-pulse rounded-sm bg-paper" />}
         </h1>
+        <div className="ml-auto">
+          <ExportMenu notebookId={notebookId} />
+        </div>
       </header>
 
       <div className="grid min-h-0 flex-1 grid-cols-[260px_1fr]">
@@ -78,6 +84,7 @@ export default function NotebookWorkspacePage() {
             onOpenSource={handleOpenSource}
             onOpenRoadmap={() => setShowRoadmap(true)}
             onOpenPodcast={() => setShowPodcast(true)}
+            onOpenQuiz={() => setShowQuiz(true)}
           />
         </aside>
         <main className="min-h-0">
@@ -102,6 +109,7 @@ export default function NotebookWorkspacePage() {
       {showPodcast && (
         <PodcastModal notebookId={notebookId} onClose={() => setShowPodcast(false)} />
       )}
+      {showQuiz && <QuizModal notebookId={notebookId} onClose={() => setShowQuiz(false)} />}
     </div>
   );
 }

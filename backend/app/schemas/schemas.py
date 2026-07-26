@@ -59,6 +59,7 @@ class ChunkOut(BaseModel):
 
 
 class CitationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     marker_index: int
     chunk: ChunkOut
     source: SourceOut
@@ -86,3 +87,28 @@ class RoadmapRequest(BaseModel):
 # ---- Bonus: podcast ----
 class PodcastRequest(BaseModel):
     source_ids: list[uuid.UUID] | None = None
+
+
+# ---- Quiz / flashcards ----
+class QuizRequest(BaseModel):
+    source_ids: list[uuid.UUID] | None = None
+    num_questions: int = 8
+    num_flashcards: int = 10
+
+
+class QuizQuestion(BaseModel):
+    question: str
+    options: list[str]
+    correct_index: int
+    explanation: str
+
+
+class Flashcard(BaseModel):
+    front: str
+    back: str
+
+
+class QuizResponse(BaseModel):
+    questions: list[QuizQuestion]
+    flashcards: list[Flashcard]
+

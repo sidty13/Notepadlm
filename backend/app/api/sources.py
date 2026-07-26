@@ -1,3 +1,4 @@
+import logging
 import os
 import uuid
 
@@ -11,6 +12,8 @@ from app.core.db import get_db
 from app.models.models import Notebook, Source, SourceStatus, SourceType
 from app.schemas.schemas import SourceOut, WebsiteOrYoutubeSourceCreate
 from app.services.indexing import run_indexing_pipeline
+
+logger = logging.getLogger("notebook_rag")
 
 router = APIRouter(prefix="/notebooks/{notebook_id}/sources", tags=["sources"])
 
@@ -34,7 +37,14 @@ def _schedule_indexing(background_tasks: BackgroundTasks, source_id: uuid.UUID):
         from app.workers.celery_app import index_source_task
 
         index_source_task.delay(str(source_id))
+        logger.info("Dispatched indexing for source %s to Celery", source_id)
     except Exception:
+        logger.exception(
+            "Could not dispatch source %s to Celery -- falling back to an "
+            "inline background task (runs in this API process, blocks its "
+            "event loop for the duration)",
+            source_id,
+        )
         background_tasks.add_task(_run_inline, source_id)
 
 

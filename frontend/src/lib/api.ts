@@ -1,8 +1,10 @@
 import type {
   ChatStreamEvent,
+  ExportFormat,
   MessageOut,
   Notebook,
   PodcastResponse,
+  QuizResponse,
   RoadmapResponse,
   SourceOut,
   ViewerPayload,
@@ -166,5 +168,43 @@ export const generatePodcast = (notebookId: string, sourceIds?: string[]) =>
 
 export const podcastFileUrl = (notebookId: string, path: string) =>
   `${API_BASE}/notebooks/${notebookId}/podcast/file?path=${encodeURIComponent(path)}`;
+
+// ---- Quiz & flashcards ----
+export const generateQuiz = (
+  notebookId: string,
+  sourceIds?: string[],
+  numQuestions = 8,
+  numFlashcards = 10,
+) =>
+  request<QuizResponse>(`/notebooks/${notebookId}/quiz`, {
+    method: "POST",
+    body: JSON.stringify({
+      source_ids: sourceIds,
+      num_questions: numQuestions,
+      num_flashcards: numFlashcards,
+    }),
+  });
+
+// ---- Export ----
+export const exportUrl = (notebookId: string, format: ExportFormat) =>
+  `${API_BASE}/notebooks/${notebookId}/export?format=${format}`;
+
+export async function downloadExport(notebookId: string, format: ExportFormat) {
+  const res = await fetch(exportUrl(notebookId, format));
+  if (!res.ok) throw new ApiError(res.status, "Export failed.");
+  const blob = await res.blob();
+  const disposition = res.headers.get("Content-Disposition") || "";
+  const match = disposition.match(/filename="?([^"]+)"?/);
+  const filename = match?.[1] || `notebook-export.${format === "markdown" ? "md" : format}`;
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 
 export { API_BASE };
