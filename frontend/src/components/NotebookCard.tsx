@@ -11,7 +11,7 @@ export default function NotebookCard({
   onDelete,
 }: {
   notebook: Notebook;
-  onDelete: (id: string) => void;
+  onDelete: (notebook: Notebook) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -19,14 +19,16 @@ export default function NotebookCard({
     <div className="group relative">
       <Link
         href={`/notebook/${notebook.id}`}
-        className="fade-up block h-full rounded-sm border border-line bg-surface p-5 shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:border-moss/50"
+        className="paper-corner fade-up block h-full overflow-hidden rounded-sm border border-line bg-surface p-5 shadow-[var(--shadow-card)] transition duration-200 hover:-translate-y-1 hover:border-moss/50 hover:shadow-[var(--shadow-card-hover)]"
       >
         <div className="mb-8 flex items-start justify-between">
           <span className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">
             {notebook.source_count} {notebook.source_count === 1 ? "source" : "sources"}
           </span>
         </div>
-        <h3 className="font-display text-xl leading-snug text-ink">{notebook.name}</h3>
+        <h3 className="font-display text-xl leading-snug text-ink transition-colors group-hover:text-moss-dark">
+          {notebook.name}
+        </h3>
         {notebook.description ? (
           <p className="mt-1.5 line-clamp-2 text-sm text-ink-soft">{notebook.description}</p>
         ) : (
@@ -48,13 +50,13 @@ export default function NotebookCard({
       </button>
       {menuOpen && (
         <div
-          className="absolute right-3 top-10 z-10 w-40 rounded-sm border border-line bg-surface-raised py-1 shadow-lg"
+          className="fade-up absolute right-3 top-10 z-10 w-40 rounded-sm border border-line bg-surface-raised py-1 shadow-lg"
           onMouseLeave={() => setMenuOpen(false)}
         >
           <button
             onClick={() => {
               setMenuOpen(false);
-              onDelete(notebook.id);
+              onDelete(notebook);
             }}
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rust hover:bg-rust-light"
           >

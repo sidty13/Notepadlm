@@ -106,11 +106,18 @@ def _concatenate_mp3s(paths: list[str], out_path: str) -> None:
             with open(p, "rb") as in_f:
                 out_f.write(in_f.read())
 
-
 @router.get("/file")
 async def get_podcast_file(notebook_id: uuid.UUID, path: str):
-    out_dir = os.path.join(settings.UPLOAD_DIR, str(notebook_id), "podcast")
-    full_path = os.path.normpath(os.path.join(out_dir, path))
-    if not full_path.startswith(os.path.abspath(out_dir)) or not os.path.exists(full_path):
+    out_dir = os.path.abspath(
+        os.path.join(settings.UPLOAD_DIR, str(notebook_id), "podcast")
+    )
+    full_path = os.path.abspath(os.path.join(out_dir, path))
+
+    print("OUT_DIR:", out_dir)
+    print("FULL_PATH:", full_path)
+    print("EXISTS:", os.path.exists(full_path))
+
+    if not full_path.startswith(out_dir) or not os.path.exists(full_path):
         raise HTTPException(404, "Podcast file not found")
+
     return FileResponse(full_path, media_type="audio/mpeg")

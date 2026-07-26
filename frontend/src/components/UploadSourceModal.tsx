@@ -109,8 +109,8 @@ export default function UploadSourceModal({
               if (f) setFile(f);
             }}
             onClick={() => fileInput.current?.click()}
-            className={`flex cursor-pointer flex-col items-center gap-2 rounded-sm border-2 border-dashed px-4 py-8 text-center transition ${
-              dragOver ? "border-moss bg-moss-light" : "border-line hover:border-ink-faint"
+            className={`flex cursor-pointer flex-col items-center gap-2 rounded-sm border-2 border-dashed px-4 py-8 text-center transition-all ${
+              dragOver ? "scale-[1.01] border-moss bg-moss-light" : "border-line hover:border-ink-faint"
             }`}
           >
             <UploadCloud size={22} className="text-ink-faint" />
@@ -172,7 +172,7 @@ export default function UploadSourceModal({
           <button
             type="submit"
             disabled={busy}
-            className="rounded-sm bg-moss px-4 py-2 text-sm font-medium text-surface transition hover:bg-moss-dark disabled:opacity-60"
+            className="press rounded-sm bg-moss px-4 py-2 text-sm font-medium text-surface transition hover:bg-moss-dark disabled:opacity-60"
           >
             {busy ? "Adding…" : "Add source"}
           </button>

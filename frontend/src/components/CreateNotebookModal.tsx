@@ -73,7 +73,7 @@ export default function CreateNotebookModal({
           <button
             type="submit"
             disabled={busy}
-            className="rounded-sm bg-moss px-4 py-2 text-sm font-medium text-surface transition hover:bg-moss-dark disabled:opacity-60"
+            className="press rounded-sm bg-moss px-4 py-2 text-sm font-medium text-surface transition hover:bg-moss-dark disabled:opacity-60"
           >
             {busy ? "Creating…" : "Create notebook"}
           </button>

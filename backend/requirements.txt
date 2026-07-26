@@ -19,4 +19,4 @@ webvtt-py==0.4.6
 tiktoken==0.7.0
 python-dotenv==1.0.1
 tenacity==8.5.0
-reportlab==4.2.=
+reportlab==4.2.5

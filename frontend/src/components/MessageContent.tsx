@@ -2,16 +2,19 @@
 
 import { Fragment } from "react";
 import CitationChip from "./CitationChip";
+import HandwrittenText from "./HandwrittenText";
 import type { CitationOut } from "@/lib/types";
 
 export default function MessageContent({
   text,
   citations,
   onOpenCitation,
+  handwriting = false,
 }: {
   text: string;
   citations: CitationOut[];
   onOpenCitation: (citation: CitationOut) => void;
+  handwriting?: boolean;
 }) {
   const byMarker = new Map(citations.map((c) => [c.marker_index, c]));
   const parts: (string | { marker: number })[] = [];
@@ -26,9 +29,15 @@ export default function MessageContent({
   if (lastIndex < text.length) parts.push(text.slice(lastIndex));
 
   return (
-    <span className="whitespace-pre-wrap leading-relaxed">
+    <span className={handwriting ? "ink-text whitespace-pre-wrap leading-relaxed" : "whitespace-pre-wrap leading-relaxed"}>
       {parts.map((p, i) => {
-        if (typeof p === "string") return <Fragment key={i}>{p}</Fragment>;
+        if (typeof p === "string") {
+          return handwriting ? (
+            <HandwrittenText key={i} text={p} />
+          ) : (
+            <Fragment key={i}>{p}</Fragment>
+          );
+        }
         const citation = byMarker.get(p.marker);
         if (!citation) return <Fragment key={i}>{`[${p.marker}]`}</Fragment>;
         return (

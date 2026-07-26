@@ -29,15 +29,20 @@ export default function Modal({
       }}
     >
       <div
-        className="fade-up w-full rounded-sm border border-line bg-surface shadow-2xl"
+        className="fade-up relative w-full rounded-sm border border-line bg-surface shadow-2xl"
         style={{ maxWidth: width, boxShadow: "var(--shadow-drawer)" }}
       >
+        <span
+          aria-hidden
+          className="washi-tape -top-2 left-8 rounded-[1px]"
+          style={{ background: "var(--color-gold-light)", transform: "rotate(-2deg)" }}
+        />
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <h2 className="font-display text-lg text-ink">{title}</h2>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="rounded-full p-1.5 text-ink-soft transition hover:bg-paper hover:text-ink"
+            className="press rounded-full p-1.5 text-ink-soft transition hover:bg-paper hover:text-ink"
           >
             <X size={18} />
           </button>

@@ -15,7 +15,7 @@ export default function SourceRow({
 }: {
   source: SourceOut;
   onReindex: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDelete: () => void;
   onOpen: (source: SourceOut) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -79,7 +79,7 @@ export default function SourceRow({
           <button
             onClick={() => {
               setMenuOpen(false);
-              onDelete(source.id);
+              onDelete();
             }}
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rust hover:bg-rust-light"
           >

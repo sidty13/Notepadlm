@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Plus, Map, Mic, Library, GraduationCap } from "lucide-react";
+import { Plus, Map as MapIcon, Mic, Library, GraduationCap, StickyNote } from "lucide-react";
 import { deleteSource, listSources, reindexSource } from "@/lib/api";
 import type { SourceOut } from "@/lib/types";
 import SourceRow from "./SourceRow";
 import UploadSourceModal from "./UploadSourceModal";
+import ConfirmDialog from "./ConfirmDialog";
+import { useToast } from "./Toast";
 
 const ACTIVE_STATUSES = new Set(["uploading", "extracting", "chunking", "embedding"]);
 
@@ -15,27 +17,43 @@ export default function SourcesPanel({
   onOpenRoadmap,
   onOpenPodcast,
   onOpenQuiz,
+  onOpenNotes,
 }: {
   notebookId: string;
   onOpenSource: (source: SourceOut) => void;
   onOpenRoadmap: () => void;
   onOpenPodcast: () => void;
   onOpenQuiz: () => void;
+  onOpenNotes: () => void;
 }) {
   const [sources, setSources] = useState<SourceOut[] | null>(null);
   const [showUpload, setShowUpload] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<SourceOut | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const statusRef = useRef<Map<string, SourceOut["status"]>>(new Map());
+  const toast = useToast();
 
   const refresh = useCallback(async () => {
     const rows = await listSources(notebookId);
+    for (const s of rows) {
+      const prev = statusRef.current.get(s.id);
+      if (prev && prev !== s.status) {
+        if (s.status === "ready") toast.success("Source ready", `“${s.title}” is indexed and citable.`);
+        if (s.status === "failed") toast.error("Indexing failed", s.status_detail || `“${s.title}” couldn't be processed.`);
+      }
+      statusRef.current.set(s.id, s.status);
+    }
     setSources(rows);
-  }, [notebookId]);
+  }, [notebookId, toast]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const rows = await listSources(notebookId);
-      if (!cancelled) setSources(rows);
+      if (!cancelled) {
+        for (const s of rows) statusRef.current.set(s.id, s.status);
+        setSources(rows);
+      }
     })();
     return () => {
       cancelled = true;
@@ -63,14 +81,19 @@ export default function SourcesPanel({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between px-4 pb-3 pt-4">
-        <div className="flex items-center gap-2 text-ink-soft">
-          <Library size={15} />
-          <span className="font-mono text-[11px] uppercase tracking-wide">Sources</span>
+      <div className="flex items-center justify-between border-b border-line-soft px-4 pb-3 pt-4">
+        <div className="flex items-center gap-2 text-ink">
+          <Library size={16} className="text-moss" />
+          <span className="font-display text-[15px]">Sources</span>
+          {sources && sources.length > 0 && (
+            <span className="rounded-full bg-moss-light px-1.5 py-0.5 font-mono text-[10px] font-medium text-moss-dark">
+              {readyCount}/{sources.length}
+            </span>
+          )}
         </div>
         <button
           onClick={() => setShowUpload(true)}
-          className="flex items-center gap-1 rounded-sm border border-line px-2 py-1 text-xs text-ink-soft transition hover:border-moss hover:text-moss"
+          className="press flex items-center gap-1 rounded-sm border border-moss/40 bg-moss-light px-2 py-1 text-xs font-medium text-moss-dark transition hover:border-moss hover:bg-moss hover:text-surface"
         >
           <Plus size={13} /> Add
         </button>
@@ -100,43 +123,51 @@ export default function SourcesPanel({
               source={s}
               onOpen={onOpenSource}
               onReindex={async (id) => {
-                await reindexSource(notebookId, id);
-                refresh();
+                try {
+                  await reindexSource(notebookId, id);
+                  toast.info("Re-indexing started", `“${s.title}” is being processed again.`);
+                  refresh();
+                } catch (e) {
+                  toast.error("Couldn't re-index", e instanceof Error ? e.message : undefined);
+                }
               }}
-              onDelete={async (id) => {
-                setSources((cur) => cur?.filter((x) => x.id !== id) ?? cur);
-                await deleteSource(notebookId, id);
-              }}
+              onDelete={() => setPendingDelete(s)}
             />
           ))
         )}
       </div>
 
-      <div className="border-t border-line px-3 py-3">
+      <div className="binder-tab border-t border-line bg-paper-dim/50 px-3 py-3 pl-4">
         <p className="mb-2 font-mono text-[10px] uppercase tracking-wide text-ink-faint">
-          From your sources
+          Study tools
         </p>
         <div className="flex flex-col gap-1.5">
           <button
             disabled={readyCount === 0}
             onClick={onOpenRoadmap}
-            className="flex items-center gap-2 rounded-sm px-2.5 py-2 text-left text-sm text-ink-soft transition hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            className="press flex items-center gap-2 rounded-sm px-2.5 py-2 text-left text-sm text-ink-soft transition hover:bg-surface-raised hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
           >
-            <Map size={15} /> Study roadmap
+            <MapIcon size={15} className="text-rust" /> Study roadmap
           </button>
           <button
             disabled={readyCount === 0}
             onClick={onOpenPodcast}
-            className="flex items-center gap-2 rounded-sm px-2.5 py-2 text-left text-sm text-ink-soft transition hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            className="press flex items-center gap-2 rounded-sm px-2.5 py-2 text-left text-sm text-ink-soft transition hover:bg-surface-raised hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
           >
-            <Mic size={15} /> Podcast summary
+            <Mic size={15} className="text-rust" /> Podcast summary
           </button>
           <button
             disabled={readyCount === 0}
             onClick={onOpenQuiz}
-            className="flex items-center gap-2 rounded-sm px-2.5 py-2 text-left text-sm text-ink-soft transition hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            className="press flex items-center gap-2 rounded-sm px-2.5 py-2 text-left text-sm text-ink-soft transition hover:bg-surface-raised hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
           >
-            <GraduationCap size={15} /> Quiz & flashcards
+            <GraduationCap size={15} className="text-rust" /> Quiz & flashcards
+          </button>
+          <button
+            onClick={onOpenNotes}
+            className="press flex items-center gap-2 rounded-sm px-2.5 py-2 text-left text-sm text-ink-soft transition hover:bg-surface-raised hover:text-ink"
+          >
+            <StickyNote size={15} className="text-rust" /> Notes
           </button>
         </div>
       </div>
@@ -145,7 +176,33 @@ export default function SourcesPanel({
         <UploadSourceModal
           notebookId={notebookId}
           onClose={() => setShowUpload(false)}
-          onAdded={(s) => setSources((cur) => [s, ...(cur ?? [])])}
+          onAdded={(s) => {
+            statusRef.current.set(s.id, s.status);
+            setSources((cur) => [s, ...(cur ?? [])]);
+            toast.success("Source added", `“${s.title}” is on its way to being indexed.`);
+          }}
+        />
+      )}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title={`Remove “${pendingDelete.title}”?`}
+          description="This source and its citations will no longer be searchable in this notebook."
+          confirmLabel="Remove source"
+          danger
+          onConfirm={async () => {
+            const s = pendingDelete;
+            setPendingDelete(null);
+            setSources((cur) => cur?.filter((x) => x.id !== s.id) ?? cur);
+            try {
+              await deleteSource(notebookId, s.id);
+              toast.success("Source removed", `“${s.title}” was removed from this notebook.`);
+            } catch (e) {
+              toast.error("Couldn't remove source", e instanceof Error ? e.message : undefined);
+              refresh();
+            }
+          }}
+          onCancel={() => setPendingDelete(null)}
         />
       )}
     </div>

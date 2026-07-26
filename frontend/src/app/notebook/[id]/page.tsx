@@ -11,7 +11,9 @@ import SourceViewerDrawer, { ViewerTarget } from "@/components/SourceViewerDrawe
 import RoadmapModal from "@/components/RoadmapModal";
 import PodcastModal from "@/components/PodcastModal";
 import QuizModal from "@/components/QuizModal";
+import NotesModal from "@/components/NotesModal";
 import ExportMenu from "@/components/ExportMenu";
+import SettingsPanel from "@/components/SettingsPanel";
 
 export default function NotebookWorkspacePage() {
   const params = useParams<{ id: string }>();
@@ -24,6 +26,7 @@ export default function NotebookWorkspacePage() {
   const [showRoadmap, setShowRoadmap] = useState(false);
   const [showPodcast, setShowPodcast] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
@@ -63,7 +66,7 @@ export default function NotebookWorkspacePage() {
       <header className="flex shrink-0 items-center gap-3 border-b border-line bg-surface px-4 py-3">
         <button
           onClick={() => router.push("/")}
-          className="rounded-full p-1.5 text-ink-soft transition hover:bg-paper hover:text-ink"
+          className="press rounded-full p-1.5 text-ink-soft transition hover:bg-paper hover:text-ink"
           aria-label="Back to notebooks"
         >
           <ArrowLeft size={17} />
@@ -72,12 +75,13 @@ export default function NotebookWorkspacePage() {
         <h1 className="truncate font-display text-lg text-ink">
           {notebook?.name ?? <span className="inline-block h-4 w-40 animate-pulse rounded-sm bg-paper" />}
         </h1>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <SettingsPanel />
           <ExportMenu notebookId={notebookId} />
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[260px_1fr]">
+      <div className="grid min-h-0 flex-1 grid-cols-[300px_1fr]">
         <aside className="min-h-0 border-r border-line bg-paper-dim/40">
           <SourcesPanel
             notebookId={notebookId}
@@ -85,6 +89,7 @@ export default function NotebookWorkspacePage() {
             onOpenRoadmap={() => setShowRoadmap(true)}
             onOpenPodcast={() => setShowPodcast(true)}
             onOpenQuiz={() => setShowQuiz(true)}
+            onOpenNotes={() => setShowNotes(true)}
           />
         </aside>
         <main className="min-h-0">
@@ -110,6 +115,7 @@ export default function NotebookWorkspacePage() {
         <PodcastModal notebookId={notebookId} onClose={() => setShowPodcast(false)} />
       )}
       {showQuiz && <QuizModal notebookId={notebookId} onClose={() => setShowQuiz(false)} />}
+      {showNotes && <NotesModal notebookId={notebookId} onClose={() => setShowNotes(false)} />}
     </div>
   );
 }

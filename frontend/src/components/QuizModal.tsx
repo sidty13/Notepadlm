@@ -5,6 +5,9 @@ import { CheckCircle2, ChevronLeft, ChevronRight, RotateCcw, XCircle } from "luc
 import Modal from "./Modal";
 import { generateQuiz } from "@/lib/api";
 import type { QuizResponse } from "@/lib/types";
+import { useToast } from "./Toast";
+import { getCached, setCached, quizKey } from "@/lib/storage";
+import { formatRelativeDate } from "@/lib/format";
 
 type Tab = "quiz" | "flashcards";
 
@@ -15,15 +18,41 @@ export default function QuizModal({
   notebookId: string;
   onClose: () => void;
 }) {
-  const [data, setData] = useState<QuizResponse | null>(null);
+  const initialCache = useState(() => getCached<QuizResponse>(quizKey(notebookId)))[0];
+  const [data, setData] = useState<QuizResponse | null>(initialCache?.data ?? null);
+  const [savedAt, setSavedAt] = useState<string | null>(initialCache?.createdAt ?? null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("quiz");
+  const [regenerating, setRegenerating] = useState(false);
+  const toast = useToast();
+
+  const fetchQuiz = (isRegenerate: boolean) =>
+    generateQuiz(notebookId)
+      .then((d) => {
+        const entry = setCached(quizKey(notebookId), d);
+        setData(entry.data);
+        setSavedAt(entry.createdAt);
+        toast.success(
+          isRegenerate ? "Quiz regenerated" : "Quiz ready",
+          `${d.questions.length} questions and ${d.flashcards.length} flashcards, saved to this notebook.`,
+        );
+      })
+      .catch((e) => {
+        const msg = e instanceof Error ? e.message : "Couldn't generate a quiz.";
+        setError(msg);
+        toast.error("Couldn't generate a quiz", msg);
+      });
+
+  const regenerate = () => {
+    setError(null);
+    setRegenerating(true);
+    fetchQuiz(true).finally(() => setRegenerating(false));
+  };
 
   useEffect(() => {
-    generateQuiz(notebookId)
-      .then(setData)
-      .catch((e) => setError(e instanceof Error ? e.message : "Couldn't generate a quiz."));
-  }, [notebookId]);
+    if (!initialCache) fetchQuiz(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <Modal title="Quiz & flashcards" onClose={onClose} width={620}>
@@ -39,6 +68,20 @@ export default function QuizModal({
 
       {data && (
         <div>
+          <div className="mb-3 flex items-center justify-between">
+            <span className="font-mono text-[10px] uppercase tracking-wide text-ink-faint">
+              {savedAt ? `Saved ${formatRelativeDate(savedAt)}` : ""}
+            </span>
+            <button
+              onClick={regenerate}
+              disabled={regenerating}
+              className="press flex items-center gap-1.5 rounded-sm border border-line px-2.5 py-1 text-xs text-ink-soft transition hover:border-moss hover:text-moss disabled:opacity-50"
+            >
+              <RotateCcw size={12} className={regenerating ? "animate-spin" : ""} />
+              {regenerating ? "Regenerating…" : "Regenerate"}
+            </button>
+          </div>
+
           <div className="mb-4 flex gap-1 rounded-sm border border-line bg-paper-dim/40 p-1">
             <TabButton active={tab === "quiz"} onClick={() => setTab("quiz")}>
               Quiz ({data.questions.length})
@@ -209,7 +252,7 @@ function FlashcardsTab({ cards }: { cards: QuizResponse["flashcards"] }) {
     <div>
       <button
         onClick={() => setFlipped((f) => !f)}
-        className="flex min-h-[180px] w-full flex-col items-center justify-center rounded-sm border border-line bg-surface-raised px-6 py-8 text-center shadow-card transition hover:border-moss"
+        className="note-card flex min-h-[180px] w-full flex-col items-center justify-center rounded-sm border border-line bg-surface-raised px-6 py-8 text-center transition hover:border-moss"
       >
         <span className="mb-3 font-mono text-[10px] uppercase tracking-wide text-ink-faint">
           {flipped ? "Answer — tap to flip back" : "Term — tap to reveal answer"}

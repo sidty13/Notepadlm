@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Download, FileJson, FileText, Loader2 } from "lucide-react";
 import { downloadExport } from "@/lib/api";
 import type { ExportFormat } from "@/lib/types";
+import { useToast } from "./Toast";
 
 const OPTIONS: { format: ExportFormat; label: string; icon: React.ReactNode }[] = [
   { format: "markdown", label: "Markdown (.md)", icon: <FileText size={14} /> },
@@ -16,6 +17,7 @@ export default function ExportMenu({ notebookId }: { notebookId: string }) {
   const [downloading, setDownloading] = useState<ExportFormat | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const toast = useToast();
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -31,8 +33,11 @@ export default function ExportMenu({ notebookId }: { notebookId: string }) {
     try {
       await downloadExport(notebookId, format);
       setOpen(false);
+      toast.success("Export ready", `Your ${format.toUpperCase()} download has started.`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Export failed.");
+      const msg = e instanceof Error ? e.message : "Export failed.";
+      setError(msg);
+      toast.error("Export failed", msg);
     } finally {
       setDownloading(null);
     }
@@ -42,7 +47,7 @@ export default function ExportMenu({ notebookId }: { notebookId: string }) {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1 rounded-sm border border-line px-2 py-1 text-xs text-ink-soft transition hover:border-moss hover:text-moss"
+        className="press flex items-center gap-1 rounded-sm border border-line px-2 py-1 text-xs text-ink-soft transition hover:border-moss hover:text-moss"
       >
         <Download size={13} /> Export
       </button>
