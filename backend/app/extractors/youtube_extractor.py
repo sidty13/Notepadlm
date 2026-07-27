@@ -1,6 +1,8 @@
 import asyncio
 import re
 import xml.etree.ElementTree as ElementTree
+from youtube_transcript_api.proxies import WebshareProxyConfig
+from app.core.config import settings
 
 from youtube_transcript_api import (
     IpBlocked,
@@ -56,8 +58,16 @@ class YoutubeExtractor(BaseExtractor):
     async def extract(self, source) -> list[ExtractedUnit]:
         video_id = extract_video_id(source.origin)
 
-        def _fetch() -> list[dict]:
-            api = YouTubeTranscriptApi()
+       def _fetch() -> list[dict]:
+            if settings.WEBSHARE_PROXY_USERNAME and settings.WEBSHARE_PROXY_PASSWORD:
+                api = YouTubeTranscriptApi(
+                    proxy_config=WebshareProxyConfig(
+                        proxy_username=settings.WEBSHARE_PROXY_USERNAME,
+                        proxy_password=settings.WEBSHARE_PROXY_PASSWORD,
+                    )
+                )
+            else:
+                api = YouTubeTranscriptApi()
             return api.fetch(video_id).to_raw_data()
 
         try:
