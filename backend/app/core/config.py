@@ -56,6 +56,14 @@ class Settings(BaseSettings):
     # and verify session tokens; leave unset and every request will be rejected.
     CLERK_ISSUER: str = ""
 
+    # --- YouTube transcript proxy (optional) ---
+    # If set, routes youtube_transcript_api requests through Webshare's
+    # residential proxies instead of this server's own (often-blocked)
+    # datacenter IP. Get credentials at webshare.io -> Dashboard -> Proxy.
+    # Leave both blank to fall back to direct (unproxied) requests.
+    WEBSHARE_PROXY_USERNAME: str = ""
+    WEBSHARE_PROXY_PASSWORD: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:
