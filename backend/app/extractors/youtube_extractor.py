@@ -58,7 +58,7 @@ class YoutubeExtractor(BaseExtractor):
     async def extract(self, source) -> list[ExtractedUnit]:
         video_id = extract_video_id(source.origin)
 
-       def _fetch() -> list[dict]:
+        def _fetch() -> list[dict]:
             if settings.WEBSHARE_PROXY_USERNAME and settings.WEBSHARE_PROXY_PASSWORD:
                 api = YouTubeTranscriptApi(
                     proxy_config=WebshareProxyConfig(
