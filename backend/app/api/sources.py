@@ -67,14 +67,22 @@ async def upload_file_source(
         raise HTTPException(400, f"Unsupported file type '{ext}'. Use .pdf, .txt, .md or .vtt")
     
     dest_dir = os.path.join(settings.UPLOAD_DIR, str(notebook_id))
-    os.makedirs(dest_dir, exist_ok=True)
-    dest_path = os.path.join(dest_dir, f"{uuid.uuid4()}{ext}")
     
-    content = await file.read()
-    with open(dest_path, "wb") as f:
-        f.write(content)
-    
-    logger.info("Saved file %s to %s", file.filename, dest_path)
+    try:
+        logger.info(f"UPLOAD_DIR={settings.UPLOAD_DIR}, dest_dir={dest_dir}")
+        os.makedirs(dest_dir, exist_ok=True)
+        logger.info(f"Created directory {dest_dir}")
+        
+        dest_path = os.path.join(dest_dir, f"{uuid.uuid4()}{ext}")
+        content = await file.read()
+        
+        logger.info(f"Writing {len(content)} bytes to {dest_path}")
+        with open(dest_path, "wb") as f:
+            f.write(content)
+        logger.info(f"Successfully saved file to {dest_path}")
+    except Exception as e:
+        logger.error(f"Error saving file: {e}", exc_info=True)
+        raise HTTPException(500, f"Error saving file: {str(e)}")
     
     source = Source(
         notebook_id=notebook_id,
