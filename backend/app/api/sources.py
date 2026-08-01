@@ -16,8 +16,6 @@ logger = logging.getLogger("notebook_rag")
 
 router = APIRouter(prefix="/notebooks/{notebook_id}/sources", tags=["sources"])
 
-os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-
 _EXT_TO_TYPE = {".pdf": SourceType.pdf, ".txt": SourceType.text, ".md": SourceType.text, ".vtt": SourceType.vtt}
 
 def _schedule_indexing(background_tasks: BackgroundTasks, source_id: uuid.UUID):
@@ -75,6 +73,8 @@ async def upload_file_source(
     content = await file.read()
     with open(dest_path, "wb") as f:
         f.write(content)
+    
+    logger.info("Saved file %s to %s", file.filename, dest_path)
     
     source = Source(
         notebook_id=notebook_id,
