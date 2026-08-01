@@ -10,7 +10,7 @@ class PdfExtractor(BaseExtractor):
 
     async def extract(self, source) -> list[ExtractedUnit]:
         if not source.file_path or not os.path.exists(source.file_path):
-    raise FileNotFoundError(f"PDF file not found: {source.file_path}")
+            raise FileNotFoundError(f"PDF file not found: {source.file_path}")
 
         reader = PdfReader(source.file_path)
         units: list[ExtractedUnit] = []
